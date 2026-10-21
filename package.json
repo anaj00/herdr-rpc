@@ -1,0 +1,9 @@
+{
+  "name": "herdr-rpc",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Discord Rich Presence plugin for Herdr",
+  "engines": { "node": ">=22" },
+  "scripts": { "start": "node src/index.js", "test": "node --test" }
+}

@@ -1,0 +1,6 @@
+{
+  "clientId": "YOUR_DISCORD_APPLICATION_ID",
+  "showProject": true,
+  "largeImage": "",
+  "pollIntervalMs": 15000
+}
