@@ -30,8 +30,14 @@ export function makeActivity(snapshot, config, start) {
   const project = folder || workspace?.label;
   const labels = { working: 'Working', blocked: 'Needs input', idle: 'Idle', done: 'Done', unknown: 'Unknown' };
   const total = snapshot.agents.length;
-  const working = snapshot.agents.filter(a => a.agent_status === 'working').length;
-  const summary = `${total} agent${total === 1 ? '' : 's'} · ${working} working`;
+  const blocked = snapshot.agents.filter(a => a.agent_status === 'blocked').length;
+  const unknown = snapshot.agents.filter(a => !['working', 'blocked', 'idle', 'done'].includes(a.agent_status)).length;
+  const resting = total > 0 && snapshot.agents.every(a => ['idle', 'done'].includes(a.agent_status));
+  const summary = blocked
+    ? `${blocked} agent${blocked === 1 ? ' needs' : 's need'} an adult`
+    : unknown
+      ? `Lost track of ${unknown} agent${unknown === 1 ? '' : 's'}`
+      : `${resting ? 'Babysitting' : 'Herding'} ${total} agent${total === 1 ? '' : 's'}`;
   const agentName = agent?.name
     ? `${agent.agent ?? 'Agent'}: ${agent.name}`
     : agent?.agent ?? 'Agent';
@@ -41,6 +47,7 @@ export function makeActivity(snapshot, config, start) {
       agent ? `${shorten(agentName, 20)} · ${labels[agent.agent_status] ?? 'Unknown'}` : 'Managing workspaces',
     ].join(' · '),
     state: summary,
+    status_display_type: 1,
     timestamps: { start },
     buttons: [{ label: 'Annoy Jana', url: 'https://team-brain.com/s/home-798b26' }],
   };

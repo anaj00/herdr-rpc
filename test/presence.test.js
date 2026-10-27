@@ -11,7 +11,8 @@ const snapshot = {
 test('focused project and semantic agent state, without private content', () => {
   const activity = makeActivity(snapshot, { showProject: true }, 123);
   assert.equal(activity.details, 'my-project · opencode · Working');
-  assert.equal(activity.state, '1 agent · 1 working');
+  assert.equal(activity.state, 'Herding 1 agent');
+  assert.equal(activity.status_display_type, 1);
   assert.equal(activity.timestamps.start, 123);
   assert.deepEqual(activity.buttons, [{ label: 'Annoy Jana', url: 'https://team-brain.com/s/home-798b26' }]);
   assert.ok(!JSON.stringify(activity).includes('C:\\private'));
@@ -22,12 +23,12 @@ test('privacy switch and blocked status', () => {
   data.agents[0].agent_status = 'blocked';
   const activity = makeActivity(data, { showProject: false }, 123);
   assert.equal(activity.details, 'opencode · Needs input');
-  assert.equal(activity.state, '1 agent · 0 working');
+  assert.equal(activity.state, '1 agent needs an adult');
 });
 test('non-agent focused pane does not select a random agent', () => {
   const activity = makeActivity({ ...snapshot, focused_pane_id: 'w1:p2' }, { showProject: true }, 123);
   assert.equal(activity.details, 'my-project · Managing workspaces');
-  assert.equal(activity.state, '1 agent · 1 working');
+  assert.equal(activity.state, 'Herding 1 agent');
 });
 test('agent names distinguish instances and counts include all workspaces', () => {
   const data = structuredClone(snapshot);
@@ -35,7 +36,7 @@ test('agent names distinguish instances and counts include all workspaces', () =
   data.agents.push({ workspace_id: 'w2', pane_id: 'w2:p1', agent: 'claude', agent_status: 'idle' });
   const activity = makeActivity(data, { showProject: true }, 123);
   assert.equal(activity.details, 'my-project · opencode: frontend · Working');
-  assert.equal(activity.state, '2 agents · 1 working');
+  assert.equal(activity.state, 'Herding 2 agents');
   data.focused_workspace_id = 'w2';
   data.focused_pane_id = 'w2:p1';
   assert.equal(makeActivity(data, { showProject: true }, 123).details, 'my-project · claude · Idle');
@@ -48,7 +49,7 @@ test('long labels stay compact while counts have their own line', () => {
   const activity = makeActivity(data, { showProject: true }, 123);
   assert.ok(Array.from(activity.details).length <= 62);
   assert.ok(activity.details.includes('…'));
-  assert.equal(activity.state, '1 agent · 1 working');
+  assert.equal(activity.state, 'Herding 1 agent');
 });
 test('focused foreground folder takes priority over workspace label and agent cwd', () => {
   const data = structuredClone(snapshot);
@@ -56,6 +57,25 @@ test('focused foreground folder takes priority over workspace label and agent cw
   data.panes = [{ pane_id: 'w1:p1', foreground_cwd: 'E:\\Projects\\actual-app\\', cwd: 'E:\\Projects\\old-app' }];
   assert.equal(makeActivity(data, { showProject: true }, 123).details, 'actual-app · opencode · Working');
   assert.equal(makeActivity(data, { showProject: false }, 123).details, 'opencode · Working');
+});
+test('status count updates as agents are added and removed', () => {
+  const data = structuredClone(snapshot);
+  data.agents = [];
+  assert.equal(makeActivity(data, {}, 123).state, 'Herding 0 agents');
+  data.agents = Array.from({ length: 5 }, () => ({ ...snapshot.agents[0] }));
+  assert.equal(makeActivity(data, {}, 123).state, 'Herding 5 agents');
+  data.agents.pop();
+  assert.equal(makeActivity(data, {}, 123).state, 'Herding 4 agents');
+});
+test('chaos statuses prioritize blocked, then unknown, then resting agents', () => {
+  const status = statuses => makeActivity({ ...snapshot, agents: statuses.map(agent_status => ({ agent_status })) }, {}, 123).state;
+  assert.equal(status(['blocked', 'blocked', 'unknown']), '2 agents need an adult');
+  assert.equal(status(['working', 'unknown']), 'Lost track of 1 agent');
+  assert.equal(status(['unknown', undefined]), 'Lost track of 2 agents');
+  assert.equal(status(['idle']), 'Babysitting 1 agent');
+  assert.equal(status(['idle', 'done']), 'Babysitting 2 agents');
+  assert.equal(status(['working', 'idle']), 'Herding 2 agents');
+  assert.equal(status([]), 'Herding 0 agents');
 });
 test('snapshot response wrappers and errors', () => {
   assert.equal(unwrapSnapshot({ result: { snapshot } }), snapshot);

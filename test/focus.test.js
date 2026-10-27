@@ -20,7 +20,7 @@ test('space focus event overrides stale server focus, including agent selection'
   const focus = eventFocus({ event: 'workspace_focused', data: { type: 'workspace_focused', workspace_id: 'w9' } }, 'workspace.focused');
   const activity = makeActivity(withFocus(snapshot, focus), { showProject: true }, 123);
   assert.equal(activity.details, 'bi · claude · Idle');
-  assert.equal(activity.state, '2 agents · 1 working');
+  assert.equal(activity.state, 'Herding 2 agents');
   assert.equal(snapshot.focused_workspace_id, 'wA');
 });
 test('pane events identify exact pane; invalid workspace is ignored', () => {
